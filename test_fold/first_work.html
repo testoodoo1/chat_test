@@ -1,0 +1,147 @@
+<html>
+<head>
+    <style type="text/css">
+        body {background-color: #ccc; padding: 20px;}
+    </style>
+    <script src = "./js/angular.min.js"></script>
+    <script src="./js/angular-route.min.js"></script>
+    <script src="./js/angular-resource.min.js"></script>
+    <script src="strophe.min.js"></script>    
+    <script type='text/javascript' src='./js/jquery.min.js'></script>
+
+</head>
+
+<body ng-app="StropheApp">
+    <div ng-controller="stropheController">
+        <div id="fb-root"></div>
+        <div id='login' style='text-align: center'>
+            <form name='cred'>
+                <label for='jid'>JID:</label>
+                <input type='text' ng-model="jid" id='jid' value="">
+                <label for='pass'>Password:</label>
+                <input type='password' ng-model="passwd" id='pass' value="">
+                <input type='button' id='connect' value='connect' ng-click="connectXmpp()">
+            </form>
+
+            <label for='to'>
+                to:
+            </label>
+            <input type='text' ng-model="to" id='to'>
+            <label for='message'>
+                message:
+            </label>
+            <input type='text' ng-model="message" id='message'>
+            <input type='button' id='send' value='send' ng-click="sendMsg()">
+        </div>
+        <hr>
+        <ul id='log'>
+            <div>{{logMsg}}</div>
+            <div>{{msgStatus}}</div>
+            <div>{{messg}}</div>
+            <div>{{onMesg1}}</div>
+            <div>{{onMesg2}}</div>
+        </ul>
+    </div>
+</body>
+<script type="text/javascript">
+angular.module( "StropheApp", [] ).controller( "stropheController", function( $scope ) {
+    var BOSH_SERVICE = 'http://localhost:5280/http-bind/';
+    var connection = null;
+    $scope.jid = "user1@localhost";
+    $scope.passwd = "secret";
+    connection = new Strophe.Connection(BOSH_SERVICE);
+    $scope.connectXmpp = function () {
+        var button = $('#connect').get(0);
+        if (button.value == 'connect') {
+            button.value = 'disconnect';
+            $scope.logMsg = "kkk";
+            connection.connect($scope.jid, $scope.passwd, $scope.onConnect);
+        } else {
+            button.value = 'connect';
+            connection.disconnect();
+        }
+    };
+
+    $scope.onConnect=function(status)
+    {   $scope.status = status;
+        setTimeout(function () {
+        $scope.$apply(function () {
+            $scope.status = status;
+            });
+        }, 100);
+
+        if (status == Strophe.Status.CONNECTING) {
+            $scope.logMsg = "Strophe is connecting.";
+        } else if (status == Strophe.Status.CONNFAIL) {
+            $scope.logMsg = "Strophe failed to connect.";
+            $('#connect').get(0).value = 'connect';
+        } else if (status == Strophe.Status.DISCONNECTING) {
+            $scope.logMsg = "Strophe is disconnecting.";
+        } else if (status == Strophe.Status.DISCONNECTED) {
+            $scope.logMsg = "Strophe is disconnected.";
+            $('#connect').get(0).value = 'connect';
+        } else if (status == Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+            $scope.logMsg = "Strophe is connected.";
+            $scope.msgStatus = 'ECHOBOT: Send a message to ' + connection.jid + ' to talk to me.';
+            connection.addHandler(onMessage, null,    'message', null, null,  null);
+            //connection.addHandler(onPresence, null, 'presence');
+            //connection.send($pres().tree());
+        }
+    };
+
+    $scope.sendMsg = function (){
+        if($scope.message && $scope.to){
+            var reply = $msg({
+                to: $scope.to,
+                type: 'chat'
+            })
+            .cnode(Strophe.xmlElement('body', $scope.message)).up();
+            connection.send(reply);
+            $scope.messg = 'I sent ' + $scope.to + ': ' + $scope.message;
+
+        }
+    };
+
+    function onPresence(presence) {
+        var presence_type = $(presence).attr('type'); // unavailable, subscribed
+        var from = $(presence).attr('from'); // the jabber_id of the contact
+        if (presence_type != 'error'){
+          if (presence_type === 'unavailable'){
+                
+          }else{
+            var show = $(presence).find("show").text(); // this is what gives away, dnd, etc.
+            if (show === 'chat' || show === ''){
+              // Mark contact as online
+            }else{
+              // etc...
+            }
+          }
+        }
+    };
+
+
+    function onMessage(msg) {
+      console.log('INTO on_message');
+        var to = msg.getAttribute('to');
+        var from = msg.getAttribute('from');
+        var type = msg.getAttribute('type');
+        var elems = msg.getElementsByTagName('body');
+        console.log(to, from, type, elems, elems.length);
+
+        if (type == "chat" && elems.length > 0) {
+          console.log('INTO chat');
+                    var body = elems[0];
+                    $messg = 'CHAT: I got a message from ' + from + ': ' +Strophe.getText(body);
+                    var text = Strophe.getText(body) + " (this is echo)";
+                    $messg = 'CHAT: I sent ' + from + ': ' + Strophe.getText(body);
+        }
+        return true;
+    }
+} );
+
+</script>
+
+
+
+
+</html>

@@ -1,0 +1,10 @@
+{
+    "dev": {
+    "host": "localhost",
+    "user": "root",
+    "password" : "1projectK!",
+    "database": "chat",
+    "driver": "mysql",
+    "multipleStatements": true
+  }
+}

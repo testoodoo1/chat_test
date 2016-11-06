@@ -1,0 +1,199 @@
+<html>
+<head>
+    <style type="text/css">
+        body {background-color: #ccc; padding: 20px; }
+        #log 
+        {
+          background-color: lightgrey;
+          width: 10cm;
+          height: 10cm;
+          border: 5px white;
+          padding: 25px;
+          margin: 25px;
+        }
+        #sent_msg
+        {
+           border:1px solid #AAA;
+           margin:4px;
+           padding:5px;
+           background:#ffffff;
+           float:right;
+
+        }
+        #recv_msg{
+           border:1px solid #AAA;
+           margin:4px;
+           padding:5px;
+           background:#ffffff;
+           float:left;
+        }
+    </style>
+
+    <script src = "./js/angular.min.js"></script>
+    <script src="./js/angular-route.min.js"></script>
+    <script src="./js/angular-resource.min.js"></script>
+    <script src="strophe.min.js"></script>    
+    <script type='text/javascript' src='./js/jquery.min.js'></script>
+
+</head>
+
+<body ng-app="StropheApp">
+    <div ng-controller="stropheController">
+        <div id="fb-root"></div>
+        <div id='login' style='text-align: center'>
+            <form name='cred'>
+                <label for='jid'>JID:</label>
+                <input type='text' ng-model="jid" id='jid' value="">
+                <label for='pass'>Password:</label>
+                <input type='password' ng-model="passwd" id='pass' value="">
+                <input type='button' id='connect' value='connect' ng-click="connectXmpp()">
+            </form>
+
+            <label for='to'>
+                to:
+            </label>
+            <input type='text' ng-model="to" id='to'>
+            <label for='message'>
+                message:
+            </label>
+        <ul id='log'>
+            <div>{{logMsg}}</div>
+            <div>{{msgStatus}}</div>
+            <div id="sent_msg">{{messg}}</div></br>
+            <div id="recv_msg">{{onMesg1}}</div>
+            <div>{{onMesg2}}</div>
+        </ul>
+            <input type='text' ng-model="message" id='message'>
+            <input type='button' id='send' value='send' ng-click="sendMsg()">
+        </div>
+        <hr>
+    </div>
+</body>
+<script type="text/javascript">
+angular.module( "StropheApp", [] ).controller( "stropheController", function( $scope ) {
+    var BOSH_SERVICE = 'ws://localhost:5280/';
+    var connection = null;
+    $scope.jid = "user1@localhost";
+    $scope.passwd = "secret";
+
+
+    connection = new Strophe.Connection(BOSH_SERVICE);
+        connection.onopen = function(e) {
+          console.log("Connected");
+        };
+
+        connection.onmessage = function(e) {
+          console.log( "Received: " + e.data);
+        };
+
+        connection.onclose = function(e) {
+          console.log("Connection closed");
+        };    
+    $scope.connectXmpp = function () {
+        var button = $('#connect').get(0);
+        if (button.value == 'connect') {
+            button.value = 'disconnect';
+            $scope.logMsg = "kkk";
+            connection.connect($scope.jid, $scope.passwd, $scope.onConnect);
+        } else {
+            button.value = 'connect';
+            connection.disconnect();
+        }
+    };
+
+    $scope.onConnect=function(status)
+    {   $scope.status = status;
+        setTimeout(function () {
+        $scope.$apply(function () {
+            $scope.status = status;
+            });
+        }, 100);
+
+        if (status == Strophe.Status.CONNECTING) {
+            $scope.logMsg = "connecting...";
+        } else if (status == Strophe.Status.CONNFAIL) {
+            $scope.logMsg = "Strophe failed to connect.";
+            $('#connect').get(0).value = 'connect';
+        } else if (status == Strophe.Status.DISCONNECTING) {
+            $scope.logMsg = "disconnecting...";
+        } else if (status == Strophe.Status.DISCONNECTED) {
+            $scope.logMsg = "disconnected...";
+            $('#connect').get(0).value = 'connect';
+        } else if (status == Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+            $scope.logMsg = "connected...";
+            //$scope.msgStatus = 'ECHOBOT: Send a message to ' + connection.jid + ' to talk to me.';
+            connection.addHandler($scope.onMessage, null,    'message', null, null,  null);
+            //connection.addHandler(onPresence, null, 'presence');
+            //connection.send($pres().tree());
+        }
+    };
+
+    $scope.sendMsg = function (){
+      var message_id = Math.random().toString(36).substr(2, 20);
+        if($scope.message && $scope.to){
+            var reply = $msg({
+                to: $scope.to,
+                type: 'chat',
+                message_id: message_id,
+            })
+            .cnode(Strophe.xmlElement('body', $scope.message)).up();
+            connection.send(reply);
+            $scope.messg = $scope.message;
+
+        }
+    };
+
+    function onPresence(presence) {
+        var presence_type = $(presence).attr('type'); // unavailable, subscribed
+        var from = $(presence).attr('from'); // the jabber_id of the contact
+        if (presence_type != 'error'){
+          if (presence_type === 'unavailable'){
+                
+          }else{
+            var show = $(presence).find("show").text(); // this is what gives away, dnd, etc.
+            if (show === 'chat' || show === ''){
+              // Mark contact as online
+            }else{
+              // etc...
+            }
+          }
+        }
+    };
+
+
+    $scope.onMessage = function (msg){
+        $scope.onMesg1 = "";
+        var to = msg.getAttribute('to');
+        var from = msg.getAttribute('from');
+        var type = msg.getAttribute('type');
+        var message_id = msg.getAttribute('message_id');
+        var elems = msg.getElementsByTagName('body');
+        var body = elems[0];
+        var message = Strophe.getText(body);
+
+
+        if (type == "chat" && elems.length > 0) {
+                    
+                    $scope.onMesg1 = message;
+            var reply = $msg({
+                to: to,
+                type: 'ack',
+                message_id: message_id,
+            })
+            .cnode(Strophe.xmlElement('body', message)).up();
+            connection.send(reply);
+/*                    var text = Strophe.getText(body) + " (this is echo)";
+                    $scope.onMesg2 = 'CHAT: I sent ' + from + ': ' + Strophe.getText(body);*/
+        }else if(type == "ack" && elems.length > 0) {
+
+        }
+        return true;
+    }
+} );
+
+</script>
+
+
+
+
+</html>

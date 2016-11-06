@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>WebSocket Chat with XMPP</title>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="chat.css">
+<style type="css/stylesheet">
+body {
+ font-family: sans-serif;
+}
+#output {
+ border: 2px solid black;
+ border-radius: 8px;
+ width: 500px;
+}
+ #output div {
+ padding: 10px;
+ }
+ #output div:nth-child(even) {
+ background-color: #ccc;
+ }
+panel {
+ display: block;
+ padding: 20px;
+ border: 1px solid #ccc;
+}
+</style>
+<h1>WebSocket Chat with XMPP</h1>
+CHAPTER 4 ■ Building Instant Messaging and Chat over WebSocket with XMPP
+9
+<!-- connect -->
+<div class="panel">
+ <input type="text" id="username" placeholder="username">
+ <input type="password" id="password" placeholder="password">
+ <button id="connectButton">Connect</button>
+</div>
+<div id="presenceArea" class="panel"></div>
+<div id="chatArea" class="panel"></div>
+<div id="output"></div>
+<!-- scripts -->
+<script src="strophe.js"></script>
+<script src="chat_app.js"></script>
